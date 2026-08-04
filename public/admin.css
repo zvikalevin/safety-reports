@@ -1,0 +1,267 @@
+:root {
+  --navy: #1a2733;
+  --safety-orange: #ff6b1a;
+  --green: #2e9e4f;
+  --yellow: #e8a800;
+  --orange: #e0570e;
+  --red: #d1293d;
+  --bg: #f4f5f7;
+  --text: #1a2733;
+  --gray: #6b7480;
+  --border: #d8dce1;
+  --white: #ffffff;
+}
+
+* { box-sizing: border-box; forced-color-adjust: none; }
+
+body {
+  color-scheme: light only;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* התחברות */
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--navy);
+  padding: 20px;
+}
+
+.login-box {
+  background: var(--white);
+  border-radius: 14px;
+  padding: 32px 26px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+
+.login-box h1 {
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
+.login-box p {
+  color: var(--gray);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.login-box input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 16px;
+  margin-bottom: 14px;
+}
+
+.login-box button {
+  width: 100%;
+  background: var(--safety-orange);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.login-error {
+  color: var(--red);
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+/* דשבורד */
+.admin-topbar {
+  background: var(--navy);
+  color: white;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-topbar h1 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.logout-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.4);
+  color: white;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.summary-bar {
+  display: flex;
+  gap: 10px;
+  padding: 16px 20px 0;
+  flex-wrap: wrap;
+}
+
+.summary-chip {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--gray);
+}
+
+.summary-chip b {
+  display: block;
+  font-size: 20px;
+  color: var(--text);
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+  padding: 16px 20px;
+  flex-wrap: wrap;
+}
+
+.filters select,
+.filters input,
+.filters button {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  font-size: 14px;
+  background: white;
+}
+
+.filters input {
+  flex: 1;
+  min-width: 160px;
+}
+
+.filters button {
+  background: var(--navy);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.reports-list {
+  padding: 0 20px 40px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.report-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.report-card img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  cursor: pointer;
+  display: block;
+}
+
+.report-body {
+  padding: 14px;
+}
+
+.report-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.report-location {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  color: white;
+}
+
+.badge-נמוך { background: var(--green); }
+.badge-בינוני { background: var(--yellow); color: #3a2c00; }
+.badge-גבוה { background: var(--orange); }
+.badge-קריטי { background: var(--red); }
+
+.report-desc {
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 10px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.report-meta {
+  font-size: 12px;
+  color: var(--gray);
+  margin-bottom: 12px;
+}
+
+.report-meta div {
+  margin-bottom: 3px;
+}
+
+.status-select {
+  width: 100%;
+  padding: 9px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--gray);
+  padding: 60px 20px;
+}
+
+.lightbox[hidden] {
+  display: none;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  cursor: zoom-out;
+  z-index: 100;
+}
+
+.lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8px;
+}

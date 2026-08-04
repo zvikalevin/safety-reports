@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="theme-color" content="#1a2733" />
+<meta name="color-scheme" content="light only" />
+<link rel="icon" href="data:," />
+<title>דיווח מפגע בטיחות</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <span class="hazard-icon" aria-hidden="true">⚠</span>
+      <h1 data-i18n="title">דיווח מפגע בטיחות</h1>
+    </div>
+    <div class="lang-switch" role="group" aria-label="Language / שפה">
+      <button type="button" class="lang-btn" data-lang="he">עברית</button>
+      <button type="button" class="lang-btn" data-lang="ru">Русский</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <p class="intro" data-i18n="intro">ראית מפגע בטיחות? צלם ודווח בשתי דקות. אפשר לדווח גם בעילום שם.</p>
+
+    <form id="reportForm" novalidate>
+      <input type="hidden" id="langField" name="lang" value="he" />
+
+      <!-- תמונה -->
+      <div class="field">
+        <label class="field-label" for="photoInput"><span data-i18n="photoLabel">תמונת המפגע</span> <span class="req">*</span></label>
+        <div class="photo-box" id="photoBox">
+          <img id="photoPreview" alt="" hidden />
+          <div id="photoPlaceholder" class="photo-placeholder">
+            <span class="camera-icon">📷</span>
+            <span data-i18n="photoPlaceholder">לחץ כדי לצלם או לבחור תמונה</span>
+          </div>
+        </div>
+        <input type="file" id="photoInput" name="photo" accept="image/*" capture="environment" required />
+        <button type="button" id="retakeBtn" class="link-btn" hidden data-i18n="retake">צלם מחדש</button>
+      </div>
+
+      <!-- מיקום -->
+      <div class="field">
+        <label class="field-label" for="locationInput"><span data-i18n="locationLabel">מיקום במפעל</span> <span class="req">*</span></label>
+        <input
+          type="text"
+          id="locationInput"
+          name="location"
+          list="locationSuggestions"
+          placeholder="למשל: מחסן 3, קו ייצור B, מסדרון ראשי"
+          data-i18n-placeholder="locationPlaceholder"
+          required
+          autocomplete="off"
+        />
+        <datalist id="locationSuggestions">
+          <option value="קו ייצור A"></option>
+          <option value="קו ייצור B"></option>
+          <option value="מחסן"></option>
+          <option value="מסדרון ראשי"></option>
+          <option value="חדר בקרה"></option>
+          <option value="חצר חיצונית"></option>
+          <option value="מעבדה"></option>
+          <option value="חדר עגינה / טעינה"></option>
+        </datalist>
+      </div>
+
+      <!-- דחיפות -->
+      <div class="field">
+        <label class="field-label"><span data-i18n="urgencyLabel">רמת דחיפות / סיכון</span> <span class="req">*</span></label>
+        <div class="urgency-grid" role="radiogroup">
+          <button type="button" class="urgency-btn urgency-low" data-value="נמוך" data-i18n="urgencyLow">נמוך</button>
+          <button type="button" class="urgency-btn urgency-medium" data-value="בינוני" data-i18n="urgencyMedium">בינוני</button>
+          <button type="button" class="urgency-btn urgency-high" data-value="גבוה" data-i18n="urgencyHigh">גבוה</button>
+          <button type="button" class="urgency-btn urgency-critical" data-value="קריטי" data-i18n="urgencyCritical">קריטי</button>
+        </div>
+        <input type="hidden" id="urgencyInput" name="urgency" required />
+      </div>
+
+      <!-- תיאור -->
+      <div class="field">
+        <label class="field-label" for="descriptionInput"><span data-i18n="descLabel">תיאור המפגע</span> <span class="req">*</span></label>
+        <textarea
+          id="descriptionInput"
+          name="description"
+          rows="4"
+          placeholder="מה קרה? מה הסיכון? מאז מתי זה קיים?"
+          data-i18n-placeholder="descPlaceholder"
+          required
+        ></textarea>
+      </div>
+
+      <!-- שם מדווח -->
+      <div class="field">
+        <label class="field-label" for="reporterInput" data-i18n="reporterLabel">שם מדווח (אופציונלי)</label>
+        <input
+          type="text"
+          id="reporterInput"
+          name="reporterName"
+          placeholder="ניתן להשאיר ריק לדיווח אנוני"
+          data-i18n-placeholder="reporterPlaceholder"
+          autocomplete="off"
+        />
+      </div>
+
+      <div id="formError" class="form-error" hidden></div>
+
+      <button type="submit" id="submitBtn" class="submit-btn">
+        <span id="submitLabel" data-i18n="submit">שלח דיווח</span>
+        <span id="submitSpinner" class="spinner" hidden></span>
+      </button>
+    </form>
+
+    <!-- מסך הצלחה -->
+    <div id="successScreen" class="success-screen" hidden>
+      <div class="success-icon">✔</div>
+      <h2 data-i18n="successTitle">תודה, הדיווח נשלח!</h2>
+      <p data-i18n="successBody">הדיווח התקבל ויטופל בהקדם. תודה שאתה עוזר לשמור על מקום עבודה בטוח.</p>
+      <button type="button" id="newReportBtn" class="submit-btn" data-i18n="newReport">דווח על מפגע נוסף</button>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

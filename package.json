@@ -1,0 +1,21 @@
+{
+  "name": "factory-safety-reports",
+  "version": "1.0.0",
+  "description": "אפליקציה לדיווח מפגעי בטיחות במפעל - סריקת QR, צילום ושליחה ללא צורך בחשבון",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "poster": "node poster/generate-poster.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "dotenv": "^16.4.5",
+    "qrcode": "^1.5.3",
+    "exceljs": "^4.4.0",
+    "nodemailer": "^9.0.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
