@@ -32,6 +32,8 @@ const MESSAGES = {
     fileTooBig: (mb) => `התמונה גדולה מדי (מקסימום ${mb}MB) - נסה לצלם שוב באיכות רגילה או לבחור תמונה קטנה יותר`,
     uploadError: 'שגיאה בהעלאת התמונה',
     unsupportedFile: 'סוג קובץ לא נתמך - יש להעלות תמונה בלבד',
+    tooMany: 'נשלחו יותר מדי דיווחים מהמכשיר הזה. נסה שוב בעוד כשעה, או פנה לממונה הבטיחות אם מדובר במפגע דחוף.',
+    serverBusy: 'המערכת קיבלה מספר חריג של דיווחים היום. פנה לממונה הבטיחות ישירות אם מדובר במפגע דחוף.',
   },
   ru: {
     noLocation: 'Пожалуйста, укажите место на заводе',
@@ -41,6 +43,8 @@ const MESSAGES = {
     fileTooBig: (mb) => `Фото слишком большое (максимум ${mb}MB) - попробуйте переснять в обычном качестве или выбрать файл меньшего размера`,
     uploadError: 'Ошибка загрузки фото',
     unsupportedFile: 'Неподдерживаемый тип файла - можно загружать только изображения',
+    tooMany: 'С этого устройства отправлено слишком много сообщений. Попробуйте через час или обратитесь к инженеру по безопасности, если нарушение срочное.',
+    serverBusy: 'Система получила необычно много сообщений сегодня. Обратитесь к инженеру по безопасности напрямую, если нарушение срочное.',
   },
 };
 
@@ -61,11 +65,17 @@ if (!isMailConfigured()) {
 
 // ---- עדכון קובץ ה-Excel המרכזי, ושליחת מייל עבור דיווח חדש (לא חוסם את התשובה לעובד) ----
 async function syncExcelAndNotify(reports, newReport) {
-  try {
-    await buildReportsWorkbook(reports, UPLOADS_DIR, REPORTS_XLSX);
-  } catch (e) {
-    console.error('שגיאה בבניית קובץ Excel:', e);
-    return;
+  // בניית האקסל היא פעולה כבדה. אין טעם לבצע אותה בכל דיווח אם אף אחד לא צריך
+  // את הקובץ ברגע זה - הוא נבנה ממילא מחדש בכל הורדה מממשק הניהול.
+  // בונים רק אם באמת עומדים לשלוח מייל שאליו הוא מצורף.
+  const willEmail = Boolean(newReport) && isMailConfigured() && !MAIL_MINIMAL;
+
+  if (willEmail) {
+    try {
+      await buildReportsWorkbook(reports, UPLOADS_DIR, REPORTS_XLSX);
+    } catch (e) {
+      console.error('שגיאה בבניית קובץ Excel:', e);
+    }
   }
 
   if (newReport) {
@@ -75,8 +85,10 @@ async function syncExcelAndNotify(reports, newReport) {
         : null;
       const result = await sendNewReportEmail({
         report: newReport,
-        excelPath: REPORTS_XLSX,
-        photoPath,
+        // במצב מייל מינימלי לא מצרפים כלום ולא מייצרים אקסל כלל
+        excelPath: MAIL_MINIMAL ? null : REPORTS_XLSX,
+        photoPath: MAIL_MINIMAL ? null : photoPath,
+        minimal: MAIL_MINIMAL,
       });
       if (result.sent) {
         console.log(`📧 מייל נשלח אל: ${result.to.join(', ')}`);
@@ -121,13 +133,65 @@ function imageFileFilter(req, file, cb) {
   }
 }
 
-const MAX_PHOTO_MB = 8; // בגודל תמונה טיפוסית ממצלמת טלפון
+// גודל תמונה מרבי - ניתן לשנות דרך משתנה סביבה MAX_PHOTO_MB בלי לגעת בקוד
+const MAX_PHOTO_MB = Number(process.env.MAX_PHOTO_MB) || 8;
+
+// מייל מינימלי: רק שורת נושא, בלי קישורים, בלי תמונה ובלי קובץ מצורף.
+// שימושי כשמסנני דואר ארגוניים חוסמים צרופות או קישורים.
+const MAIL_MINIMAL = String(process.env.MAIL_MINIMAL || '').toLowerCase() === 'true';
 
 const upload = multer({
   storage,
   fileFilter: imageFileFilter,
   limits: { fileSize: MAX_PHOTO_MB * 1024 * 1024 },
 });
+
+// ---- הגבלת קצב דיווחים (הגנה מפני הצפה) ----
+// כל הערכים ניתנים לשינוי דרך משתני סביבה ב-Render, בלי לגעת בקוד.
+const RATE_MAX = Number(process.env.RATE_LIMIT_MAX) || 10;          // דיווחים מותרים לכל מכשיר
+const RATE_WINDOW_MIN = Number(process.env.RATE_LIMIT_WINDOW_MIN) || 60; // בתוך כמה דקות
+const DAILY_MAX = Number(process.env.DAILY_LIMIT_MAX) || 300;       // תקרה יומית לכל המערכת
+
+// Render מריץ את השרת מאחורי פרוקסי - בלי השורה הזו כל הדיווחים ייראו כאילו
+// הגיעו מאותה כתובת, וההגבלה הייתה חוסמת את כולם ביחד.
+app.set('trust proxy', 1);
+
+const rateHits = new Map();   // כתובת -> מערך חותמות זמן
+let dailyCount = 0;
+let dailyStamp = new Date().toDateString();
+
+function checkRateLimit(req) {
+  const now = Date.now();
+
+  // איפוס המונה היומי בכל יום חדש
+  const today = new Date().toDateString();
+  if (today !== dailyStamp) {
+    dailyStamp = today;
+    dailyCount = 0;
+  }
+  if (dailyCount >= DAILY_MAX) return 'daily';
+
+  const ip = req.ip || 'unknown';
+  const windowMs = RATE_WINDOW_MIN * 60 * 1000;
+  const recent = (rateHits.get(ip) || []).filter((t) => now - t < windowMs);
+
+  if (recent.length >= RATE_MAX) {
+    rateHits.set(ip, recent);
+    return 'ip';
+  }
+
+  recent.push(now);
+  rateHits.set(ip, recent);
+  dailyCount += 1;
+
+  // ניקוי תקופתי כדי שהזיכרון לא יתנפח עם הזמן
+  if (rateHits.size > 5000) {
+    for (const [key, stamps] of rateHits) {
+      if (!stamps.some((t) => now - t < windowMs)) rateHits.delete(key);
+    }
+  }
+  return null;
+}
 
 // ---- מידלוור ----
 app.use(express.json());
@@ -152,6 +216,15 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.post('/api/reports', (req, res) => {
   const msg = getMessages(req.query.lang);
 
+  // בדיקת הצפה לפני שמתחילים לקבל את התמונה - חוסך תעבורה מיותרת
+  const limited = checkRateLimit(req);
+  if (limited === 'daily') {
+    return res.status(429).json({ error: msg.serverBusy });
+  }
+  if (limited === 'ip') {
+    return res.status(429).json({ error: msg.tooMany });
+  }
+
   upload.single('photo')(req, res, (err) => {
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
@@ -160,7 +233,7 @@ app.post('/api/reports', (req, res) => {
       return res.status(400).json({ error: err.message || msg.uploadError });
     }
 
-    const { location, urgency, description, reporterName } = req.body;
+    const { location, urgency, description, reporterName, locationDetail } = req.body;
 
     if (!location || !location.trim()) {
       return res.status(400).json({ error: msg.noLocation });
@@ -180,6 +253,7 @@ app.post('/api/reports', (req, res) => {
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       location: location.trim(),
+      locationDetail: (locationDetail || '').trim() || null,
       urgency,
       description: description.trim(),
       reporterName: (reporterName || '').trim() || null,

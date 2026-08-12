@@ -55,15 +55,31 @@
           autocomplete="off"
         />
         <datalist id="locationSuggestions">
-          <option value="קו ייצור A"></option>
-          <option value="קו ייצור B"></option>
+          <option value="חצר"></option>
+          <option value="אולם ייצור"></option>
           <option value="מחסן"></option>
-          <option value="מסדרון ראשי"></option>
-          <option value="חדר בקרה"></option>
-          <option value="חצר חיצונית"></option>
-          <option value="מעבדה"></option>
-          <option value="חדר עגינה / טעינה"></option>
+          <option value="מחלקת צבע"></option>
+          <option value="מחלקת הכנות"></option>
+          <option value="מוסך"></option>
+          <option value="מיכליות"></option>
+          <option value="מחלקת הנדסה"></option>
+          <option value="משרדים"></option>
+          <option value="משרדי גלריה"></option>
+          <option value="אחר"></option>
         </datalist>
+      </div>
+
+      <!-- פירוט מיקום מדויק (רשות) -->
+      <div class="field">
+        <label class="field-label" for="locationDetailInput" data-i18n="locationDetailLabel">פירוט מדויק (רשות)</label>
+        <input
+          type="text"
+          id="locationDetailInput"
+          name="locationDetail"
+          placeholder="למשל: ליד מכונה 3, בפינה הצפונית"
+          data-i18n-placeholder="locationDetailPlaceholder"
+          autocomplete="off"
+        />
       </div>
 
       <!-- דחיפות -->

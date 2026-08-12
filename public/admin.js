@@ -161,7 +161,7 @@
         <img src="/uploads/${r.photoFilename}" alt="תמונת מפגע" data-fullsrc="/uploads/${r.photoFilename}" />
         <div class="report-body">
           <div class="report-top-row">
-            <div class="report-location">${escapeHtml(r.location)}</div>
+            <div class="report-location">${escapeHtml(r.location)}${r.locationDetail ? ' · ' + escapeHtml(r.locationDetail) : ''}</div>
             <span class="badge badge-${r.urgency}">${r.urgency}</span>
           </div>
           <div class="report-desc">${escapeHtml(r.description)}</div>
