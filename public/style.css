@@ -110,7 +110,8 @@ html, body {
 }
 
 input[type="text"],
-textarea {
+textarea,
+select {
   width: 100%;
   padding: 13px 14px;
   border: 1.5px solid var(--border);
@@ -122,9 +123,32 @@ textarea {
 }
 
 input[type="text"]:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   outline: none;
   border-color: var(--safety-orange);
+}
+
+/* רשימת המיקומים - חץ מותאם, וגובה זהה לשאר השדות בנייד */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath fill='%236b7480' d='M1 1l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 14px center;
+  padding-left: 40px;
+  cursor: pointer;
+}
+
+html[dir="ltr"] select {
+  background-position: right 14px center;
+  padding-left: 14px;
+  padding-right: 40px;
+}
+
+/* כל עוד לא נבחר מיקום, הטקסט אפור כמו placeholder */
+select:invalid {
+  color: var(--gray);
 }
 
 textarea {

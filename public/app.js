@@ -26,8 +26,10 @@
       errNoUrgency: 'נא לבחור רמת דחיפות',
       errGeneric: 'אירעה שגיאה, נסה שוב',
       errNetwork: 'בעיית תקשורת - בדוק חיבור לאינטרנט ונסה שוב',
+      locationChoose: 'בחר מיקום...',
       locationDetailLabel: 'פירוט מדויק (רשות)',
       locationDetailPlaceholder: 'למשל: ליד מכונה 3, בפינה הצפונית',
+      errNoLocation: 'נא לבחור מיקום במפעל',
       locations: ['חצר', 'אולם ייצור', 'מחסן', 'מחלקת צבע', 'מחלקת הכנות', 'מוסך', 'מיכליות', 'מחלקת הנדסה', 'משרדים', 'משרדי גלריה', 'אחר'],
     },
     ru: {
@@ -56,8 +58,10 @@
       errNoUrgency: 'Пожалуйста, выберите уровень срочности',
       errGeneric: 'Произошла ошибка, попробуйте снова',
       errNetwork: 'Проблема с подключением - проверьте интернет и попробуйте снова',
+      locationChoose: 'Выберите место...',
       locationDetailLabel: 'Точное место (необязательно)',
       locationDetailPlaceholder: 'Например: возле станка 3, в северном углу',
+      errNoLocation: 'Пожалуйста, выберите место на заводе',
       locations: ['Двор', 'Производственный цех', 'Склад', 'Покрасочный цех', 'Отдел подготовки', 'Гараж', 'Автоцистерны', 'Инженерный отдел', 'Офисы', 'Офисы на галерее', 'Другое'],
     },
   };
@@ -80,7 +84,6 @@
   const newReportBtn = document.getElementById('newReportBtn');
   const langField = document.getElementById('langField');
   const langButtons = document.querySelectorAll('.lang-btn');
-  const locationSuggestions = document.getElementById('locationSuggestions');
   const locationInput = document.getElementById('locationInput');
 
   let currentLang = 'he';
@@ -104,12 +107,27 @@
       if (t[key] !== undefined) el.placeholder = t[key];
     });
 
-    locationSuggestions.innerHTML = '';
-    t.locations.forEach((loc) => {
+    // בונים מחדש את רשימת המיקומים בשפה הנוכחית.
+    // הערך שנשמר הוא תמיד בעברית, גם כשהעובד בחר מהרשימה הרוסית - כך
+    // הטבלה, האקסל וממשק הניהול נשארים אחידים ולא צריך לתרגם אותם.
+    const previousLocation = locationInput.value;
+    locationInput.innerHTML = '';
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.disabled = true;
+    placeholder.textContent = t.locationChoose;
+    locationInput.appendChild(placeholder);
+
+    TRANSLATIONS.he.locations.forEach((canonical, i) => {
       const opt = document.createElement('option');
-      opt.value = loc;
-      locationSuggestions.appendChild(opt);
+      opt.value = canonical;
+      opt.textContent = t.locations[i] || canonical;
+      locationInput.appendChild(opt);
     });
+
+    locationInput.value = previousLocation;
+    if (!locationInput.value) placeholder.selected = true;
 
     langButtons.forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.lang === lang);
@@ -190,6 +208,10 @@
 
     if (!photoInput.files[0]) {
       showError(t.errNoPhoto);
+      return;
+    }
+    if (!locationInput.value) {
+      showError(t.errNoLocation);
       return;
     }
     if (!urgencyInput.value) {

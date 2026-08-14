@@ -44,29 +44,9 @@
       <!-- מיקום -->
       <div class="field">
         <label class="field-label" for="locationInput"><span data-i18n="locationLabel">מיקום במפעל</span> <span class="req">*</span></label>
-        <input
-          type="text"
-          id="locationInput"
-          name="location"
-          list="locationSuggestions"
-          placeholder="למשל: מחסן 3, קו ייצור B, מסדרון ראשי"
-          data-i18n-placeholder="locationPlaceholder"
-          required
-          autocomplete="off"
-        />
-        <datalist id="locationSuggestions">
-          <option value="חצר"></option>
-          <option value="אולם ייצור"></option>
-          <option value="מחסן"></option>
-          <option value="מחלקת צבע"></option>
-          <option value="מחלקת הכנות"></option>
-          <option value="מוסך"></option>
-          <option value="מיכליות"></option>
-          <option value="מחלקת הנדסה"></option>
-          <option value="משרדים"></option>
-          <option value="משרדי גלריה"></option>
-          <option value="אחר"></option>
-        </datalist>
+        <select id="locationInput" name="location" required>
+          <option value="" disabled selected>בחר מיקום...</option>
+        </select>
       </div>
 
       <!-- פירוט מיקום מדויק (רשות) -->
