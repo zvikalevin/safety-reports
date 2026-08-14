@@ -9,6 +9,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { buildReportsWorkbook } = require('./lib/excel');
 const { sendNewReportEmail, isMailConfigured } = require('./lib/mailer');
+const { appendReportToSheet, isSheetsConfigured } = require('./lib/sheets');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -60,11 +61,26 @@ if (!ADMIN_PASSWORD) {
   console.warn('\n⚠️  אזהרה: לא הוגדרה ADMIN_PASSWORD בקובץ .env - ממשק הניהול אינו מוגן!\n');
 }
 if (!isMailConfigured()) {
-  console.warn('ℹ️  שליחת מייל אוטומטי אינה מוגדרת (ראה README) - הדיווחים יישמרו אך לא יישלח מייל.\n');
+  console.warn('ℹ️  שליחת מייל אוטומטי אינה מוגדרת (ראה README) - הדיווחים יישמרו אך לא יישלח מייל.');
+}
+if (!isSheetsConfigured()) {
+  console.warn('⚠️  גיליון Google Sheets אינו מוגדר - אין ארכיון קבוע! דיווחים יימחקו בכל הפעלה מחדש.\n');
+} else {
+  console.log('📊 ארכיון Google Sheets פעיל\n');
 }
 
 // ---- עדכון קובץ ה-Excel המרכזי, ושליחת מייל עבור דיווח חדש (לא חוסם את התשובה לעובד) ----
 async function syncExcelAndNotify(reports, newReport) {
+  // הגיליון הוא הארכיון הקבוע - כותבים אליו קודם, לפני כל השאר
+  if (newReport) {
+    try {
+      const result = await appendReportToSheet(newReport, PUBLIC_URL);
+      if (result.appended) console.log('📊 הדיווח נוסף לגיליון Google Sheets');
+    } catch (e) {
+      console.error('שגיאה בכתיבה לגיליון:', e.message);
+    }
+  }
+
   // בניית האקסל היא פעולה כבדה. אין טעם לבצע אותה בכל דיווח אם אף אחד לא צריך
   // את הקובץ ברגע זה - הוא נבנה ממילא מחדש בכל הורדה מממשק הניהול.
   // בונים רק אם באמת עומדים לשלוח מייל שאליו הוא מצורף.
@@ -139,6 +155,10 @@ const MAX_PHOTO_MB = Number(process.env.MAX_PHOTO_MB) || 8;
 // מייל מינימלי: רק שורת נושא, בלי קישורים, בלי תמונה ובלי קובץ מצורף.
 // שימושי כשמסנני דואר ארגוניים חוסמים צרופות או קישורים.
 const MAIL_MINIMAL = String(process.env.MAIL_MINIMAL || '').toLowerCase() === 'true';
+
+// הכתובת הציבורית של המערכת - משמשת לבניית קישור לתמונה בגיליון.
+// Render מספק אותה אוטומטית במשתנה RENDER_EXTERNAL_URL.
+const PUBLIC_URL = process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '';
 
 const upload = multer({
   storage,
