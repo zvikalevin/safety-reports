@@ -6,18 +6,27 @@ const path = require('path');
 const QRCode = require('qrcode');
 
 const url = process.argv[2];
+// גודל הדף: A4 (ברירת מחדל) או A3 לתלייה במקומות פתוחים
+const size = (process.argv[3] || 'A4').toUpperCase() === 'A3' ? 'A3' : 'A4';
 
 if (!url) {
   console.error('❌ יש להעביר את כתובת האפליקציה כפרמטר, לדוגמה:');
   console.error('   node poster/generate-poster.js https://my-safety-app.onrender.com');
+  console.error('   node poster/generate-poster.js https://my-safety-app.onrender.com A3');
   process.exit(1);
 }
 
+// A3 הוא בדיוק פי 1.414 מ-A4 בכל ממד, אז מגדילים הכל באותו יחס
+const K = size === 'A3' ? 1.414 : 1;
+const px = (n) => Math.round(n * K);
+const pageW = size === 'A3' ? 297 : 210;
+const pageH = size === 'A3' ? 420 : 297;
+
 const outDir = __dirname;
 const qrPath = path.join(outDir, 'qrcode.png');
-const posterPath = path.join(outDir, 'poster.html');
+const posterPath = path.join(outDir, `poster-${size}.html`);
 
-QRCode.toFile(qrPath, url, { width: 500, margin: 2 }, (err) => {
+QRCode.toFile(qrPath, url, { width: 900, margin: 2 }, (err) => {
   if (err) {
     console.error('שגיאה ביצירת קוד ה-QR:', err);
     process.exit(1);
@@ -30,78 +39,81 @@ QRCode.toFile(qrPath, url, { width: 500, margin: 2 }, (err) => {
 <meta name="color-scheme" content="light only" />
 <title>פוסטר דיווח מפגעי בטיחות / Плакат сообщения о нарушении</title>
 <style>
-  @page { size: A4; margin: 0; }
+  @page { size: ${size}; margin: 0; }
   * { box-sizing: border-box; forced-color-adjust: none; }
-  body {
+  html, body {
     margin: 0;
+    padding: 0;
     font-family: Arial, sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    background: #1a2733;
+    background: #ffffff;
     color-scheme: light only;
   }
+  /* הפוסטר תופס את הדף כולו. בלי זה התוכן נדחס לחלק העליון
+     ונשאר שטח לבן בתחתית בהדפסה. */
+  /* מנוע ההדפסה לא תומך ב-margin-top:auto בתוך flex בגובה קבוע,
+     ולכן התחתית מוצמדת עם position:absolute במקום. */
   .poster {
-    width: 210mm;
-    height: 297mm;
+    width: ${pageW}mm;
+    height: ${pageH}mm;
     background: #ffffff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    position: relative;
     box-sizing: border-box;
     color: #1a2733;
     text-align: center;
+    overflow: hidden;
   }
   .head {
     width: 100%;
     background: #1a2733;
     color: white;
-    padding: 30px 20px 26px;
+    padding: ${px(30)}px ${px(20)}px ${px(26)}px;
   }
-  .icon { font-size: 54px; }
+  .icon { font-size: ${px(54)}px; }
   .head h1 {
-    font-size: 30px;
-    margin: 8px 0 2px;
+    font-size: ${px(30)}px;
+    margin: ${px(8)}px 0 ${px(2)}px;
     color: #ff6b1a;
   }
-  .head h1.ru { font-size: 24px; color: #ffffff; margin-bottom: 10px; }
+  .head h1.ru { font-size: ${px(24)}px; color: #ffffff; margin-bottom: ${px(10)}px; }
   .head h2 {
-    font-size: 16px;
+    font-size: ${px(16)}px;
     margin: 0;
     font-weight: 400;
     color: rgba(255,255,255,0.85);
   }
   .head h2.ru { margin-top: 4px; }
   .divider {
-    width: 60px;
-    height: 3px;
+    width: ${px(60)}px;
+    height: ${px(3)}px;
     background: #ff6b1a;
-    margin: 14px auto 0;
+    margin: ${px(14)}px auto 0;
     border-radius: 2px;
   }
+  /* inline-block כדי שהמסגרת תתכווץ לגודל התמונה ותתמרכז,
+     במקום להימתח לכל רוחב העמוד */
   .qr-card {
     background: white;
     border: 2px solid #d8dce1;
-    border-radius: 20px;
-    padding: 20px;
-    margin: 28px auto 8px;
+    border-radius: ${px(20)}px;
+    padding: ${px(20)}px;
+    margin: ${px(28)}px auto ${px(8)}px;
+    display: inline-block;
   }
-  .qr-card img { width: 260px; height: 260px; display: block; }
+  .qr-card img { width: ${px(360)}px; height: ${px(360)}px; display: block; }
   .no-account {
-    font-size: 14px;
+    font-size: ${px(14)}px;
     color: #6b7480;
-    max-width: 460px;
-    margin: 0 auto 20px;
+    max-width: ${px(460)}px;
+    margin: 0 auto ${px(20)}px;
     line-height: 1.5;
   }
   .steps-wrap {
     display: flex;
     width: 100%;
-    max-width: 680px;
-    gap: 20px;
-    padding: 0 30px;
-    margin-top: 10px;
+    max-width: ${px(680)}px;
+    gap: ${px(20)}px;
+    padding: 0 ${px(30)}px;
+    margin: ${px(10)}px auto 0;
   }
   .steps-col {
     flex: 1;
@@ -113,39 +125,42 @@ QRCode.toFile(qrPath, url, { width: 500, margin: 2 }, (err) => {
     direction: ltr;
   }
   .steps-col-title {
-    font-size: 13px;
+    font-size: ${px(13)}px;
     font-weight: bold;
     color: #ff6b1a;
-    margin-bottom: 10px;
+    margin-bottom: ${px(10)}px;
     text-transform: uppercase;
   }
   .steps-col div.step {
-    font-size: 14px;
-    margin-bottom: 12px;
+    font-size: ${px(14)}px;
+    margin-bottom: ${px(12)}px;
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: ${px(8)}px;
     line-height: 1.4;
   }
   .steps-col.ru div.step { flex-direction: row; }
   .step-num {
     background: #1a2733;
     color: white;
-    width: 22px;
-    height: 22px;
+    width: ${px(22)}px;
+    height: ${px(22)}px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: 12px;
+    font-size: ${px(12)}px;
     flex-shrink: 0;
   }
   .footer {
-    margin-top: auto;
-    padding: 18px 20px 26px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: ${px(18)}px ${px(20)}px ${px(26)}px;
     color: #6b7480;
-    font-size: 12px;
+    font-size: ${px(12)}px;
     line-height: 1.6;
   }
 </style>
@@ -194,6 +209,6 @@ QRCode.toFile(qrPath, url, { width: 500, margin: 2 }, (err) => {
   fs.writeFileSync(posterPath, html, 'utf8');
   console.log('✅ נוצר בהצלחה:');
   console.log('   ' + qrPath);
-  console.log('   ' + posterPath);
+  console.log('   ' + posterPath + '  (' + size + ')');
   console.log('\nפתח את poster.html בדפדפן והדפס (Ctrl+P) לקובץ PDF או ישירות למדפסת.');
 });
