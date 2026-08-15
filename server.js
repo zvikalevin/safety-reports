@@ -101,9 +101,10 @@ async function syncExcelAndNotify(reports, newReport) {
         : null;
       const result = await sendNewReportEmail({
         report: newReport,
-        // במצב מייל מינימלי לא מצרפים כלום ולא מייצרים אקסל כלל
+        // במצב מינימלי לא מייצרים אקסל, אבל התמונה כן נשלחת - מוטמעת בגוף
+        // ההודעה. מפגע בלי תמונה קשה הרבה יותר להערכה מרחוק.
         excelPath: MAIL_MINIMAL ? null : REPORTS_XLSX,
-        photoPath: MAIL_MINIMAL ? null : photoPath,
+        photoPath,
         minimal: MAIL_MINIMAL,
       });
       if (result.sent) {

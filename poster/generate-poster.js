@@ -73,12 +73,20 @@ QRCode.toFile(qrPath, url, { width: 900, margin: 2 }, (err) => {
   }
   .icon { font-size: ${px(46)}px; }
   /* לוגו החברה בפינה השמאלית העליונה */
-  .logo {
+  /* הלוגו על רקע לבן - הטקסט שלו כהה ועל הרקע הכהה של הפוסטר הוא לא היה נקרא */
+  .logo-box {
     position: absolute;
-    top: ${px(18)}px;
-    left: ${px(22)}px;
-    max-width: ${px(150)}px;
-    max-height: ${px(62)}px;
+    top: ${px(16)}px;
+    left: ${px(18)}px;
+    background: #ffffff;
+    border-radius: ${px(8)}px;
+    padding: ${px(9)}px ${px(13)}px;
+    line-height: 0;
+  }
+  .logo-box img {
+    width: ${px(132)}px;
+    height: auto;
+    display: block;
   }
   .head h1 {
     font-size: ${px(40)}px;
@@ -179,7 +187,7 @@ QRCode.toFile(qrPath, url, { width: 900, margin: 2 }, (err) => {
 <body>
   <div class="poster">
     <div class="head">
-      ${hasLogo ? '<img class="logo" src="logo.png" alt="" />' : ''}
+      ${hasLogo ? '<div class="logo-box"><img src="logo.png" alt="Shladot" /></div>' : ''}
       <div class="icon">⚠️</div>
       <h1>ראית מפגע בטיחות?</h1>
       <h1 class="ru">Заметили нарушение безопасности?</h1>
