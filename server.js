@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { buildReportsWorkbook } = require('./lib/excel');
-const { sendNewReportEmail, isMailConfigured } = require('./lib/mailer');
+const { sendNewReportEmail, sendDigestEmail, isMailConfigured } = require('./lib/mailer');
 const { appendReportToSheet, isSheetsConfigured } = require('./lib/sheets');
 
 const app = express();
@@ -33,7 +33,7 @@ const MESSAGES = {
     fileTooBig: (mb) => `התמונה גדולה מדי (מקסימום ${mb}MB) - נסה לצלם שוב באיכות רגילה או לבחור תמונה קטנה יותר`,
     uploadError: 'שגיאה בהעלאת התמונה',
     unsupportedFile: 'סוג קובץ לא נתמך - יש להעלות תמונה בלבד',
-    tooMany: 'נשלחו יותר מדי דיווחים מהמכשיר הזה. נסה שוב בעוד כשעה, או פנה לממונה הבטיחות אם מדובר במפגע דחוף.',
+    tooMany: (max) => `נשלחו ${max} דיווחים מהמכשיר הזה היום, וזו המכסה היומית. נסה שוב מחר, או פנה לממונה הבטיחות ישירות אם מדובר במפגע דחוף.`,
     serverBusy: 'המערכת קיבלה מספר חריג של דיווחים היום. פנה לממונה הבטיחות ישירות אם מדובר במפגע דחוף.',
   },
   ru: {
@@ -44,7 +44,7 @@ const MESSAGES = {
     fileTooBig: (mb) => `Фото слишком большое (максимум ${mb}MB) - попробуйте переснять в обычном качестве или выбрать файл меньшего размера`,
     uploadError: 'Ошибка загрузки фото',
     unsupportedFile: 'Неподдерживаемый тип файла - можно загружать только изображения',
-    tooMany: 'С этого устройства отправлено слишком много сообщений. Попробуйте через час или обратитесь к инженеру по безопасности, если нарушение срочное.',
+    tooMany: (max) => `С этого устройства сегодня отправлено ${max} сообщений - это дневной лимит. Попробуйте завтра или обратитесь к инженеру по безопасности напрямую, если нарушение срочное.`,
     serverBusy: 'Система получила необычно много сообщений сегодня. Обратитесь к инженеру по безопасности напрямую, если нарушение срочное.',
   },
 };
@@ -168,8 +168,8 @@ const upload = multer({
 
 // ---- הגבלת קצב דיווחים (הגנה מפני הצפה) ----
 // כל הערכים ניתנים לשינוי דרך משתני סביבה ב-Render, בלי לגעת בקוד.
-const RATE_MAX = Number(process.env.RATE_LIMIT_MAX) || 10;          // דיווחים מותרים לכל מכשיר
-const RATE_WINDOW_MIN = Number(process.env.RATE_LIMIT_WINDOW_MIN) || 60; // בתוך כמה דקות
+const RATE_MAX = Number(process.env.RATE_LIMIT_MAX) || 5;              // דיווחים מותרים לכל מכשיר
+const RATE_WINDOW_MIN = Number(process.env.RATE_LIMIT_WINDOW_MIN) || 1440; // בתוך כמה דקות (1440 = יממה)
 const DAILY_MAX = Number(process.env.DAILY_LIMIT_MAX) || 300;       // תקרה יומית לכל המערכת
 
 // Render מריץ את השרת מאחורי פרוקסי - בלי השורה הזו כל הדיווחים ייראו כאילו
@@ -218,6 +218,43 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(UPLOADS_DIR));
 
+// ---- גישת מנהלים: קוד אישי לכל אדם ----
+// MANAGER_CODES מוגדר כ: "שם:קוד,שם:קוד". קוד אישי מאפשר לבטל גישה
+// לאדם אחד בלי לשנות סיסמה לכולם, ומאפשר לדעת מי שינה כל סטטוס.
+function parseManagerCodes() {
+  const raw = process.env.MANAGER_CODES || '';
+  const map = new Map();
+  raw.split(',').forEach((pair) => {
+    const idx = pair.lastIndexOf(':');
+    if (idx === -1) return;
+    const name = pair.slice(0, idx).trim();
+    const code = pair.slice(idx + 1).trim();
+    if (name && code) map.set(code, name);
+  });
+  return map;
+}
+
+const MANAGER_CODES = parseManagerCodes();
+
+function managerFromReq(req) {
+  const code = req.header('x-manager-code') || req.query.code || '';
+  if (!code) return null;
+  return MANAGER_CODES.get(code) || null;
+}
+
+function requireManager(req, res, next) {
+  const name = managerFromReq(req);
+  if (!name) return res.status(401).json({ error: 'קוד גישה שגוי' });
+  req.managerName = name;
+  next();
+}
+
+// מנהלים לא רואים את שם המדווח - האנונימיות היא מה שמשמר את הנכונות לדווח
+function stripReporter(report) {
+  const { reporterName, ...rest } = report;
+  return rest;
+}
+
 function requireAdmin(req, res, next) {
   const supplied = req.header('x-admin-password') || req.query.password || '';
   if (!ADMIN_PASSWORD) {
@@ -242,7 +279,7 @@ app.post('/api/reports', (req, res) => {
     return res.status(429).json({ error: msg.serverBusy });
   }
   if (limited === 'ip') {
-    return res.status(429).json({ error: msg.tooMany });
+    return res.status(429).json({ error: msg.tooMany(RATE_MAX) });
   }
 
   upload.single('photo')(req, res, (err) => {
@@ -306,6 +343,55 @@ app.get('/api/reports', requireAdmin, (req, res) => {
   res.json({ reports });
 });
 
+// ---- כניסת מנהל עם קוד אישי ----
+app.post('/api/manager/login', (req, res) => {
+  const { code } = req.body;
+  const name = MANAGER_CODES.get((code || '').trim());
+  if (!name) return res.status(401).json({ error: 'קוד גישה שגוי' });
+  res.json({ success: true, name });
+});
+
+// ---- רשימת דיווחים למנהלים (ללא שם המדווח) ----
+app.get('/api/manager/reports', requireManager, (req, res) => {
+  let reports = readReports();
+
+  const { status, urgency, location } = req.query;
+  if (status) reports = reports.filter((r) => r.status === status);
+  if (urgency) reports = reports.filter((r) => r.urgency === urgency);
+  if (location) {
+    const q = location.toLowerCase();
+    reports = reports.filter((r) => r.location.toLowerCase().includes(q));
+  }
+
+  reports.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json({ reports: reports.map(stripReporter), viewer: req.managerName });
+});
+
+// ---- עדכון סטטוס בידי מנהל, עם תיעוד מי שינה ----
+app.patch('/api/manager/reports/:id', requireManager, (req, res) => {
+  const { status } = req.body;
+  if (!status || !STATUS_VALUES.includes(status)) {
+    return res.status(400).json({ error: 'סטטוס לא תקין' });
+  }
+
+  const reports = readReports();
+  const idx = reports.findIndex((r) => r.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'דיווח לא נמצא' });
+
+  reports[idx].status = status;
+  reports[idx].statusHistory = reports[idx].statusHistory || [];
+  reports[idx].statusHistory.push({
+    status,
+    by: req.managerName,
+    at: new Date().toISOString(),
+  });
+
+  writeReports(reports);
+  res.json({ success: true, report: stripReporter(reports[idx]) });
+
+  syncExcelAndNotify(reports, null).catch((e) => console.error('syncExcelAndNotify:', e));
+});
+
 // ---- עדכון סטטוס דיווח (מנהל בלבד) ----
 app.patch('/api/reports/:id', requireAdmin, (req, res) => {
   const { status } = req.body;
@@ -339,6 +425,61 @@ app.get('/api/admin/export.xlsx', requireAdmin, async (req, res) => {
   }
 });
 
+// ---- משיכת הנתונים לקובץ Excel ברשת המפעלית ----
+// קובץ Excel שיושב על שרת הקבצים הפנימי מתחבר לכתובת הזו ומרענן את עצמו.
+// ההרשאה היא מפתח בכתובת ולא סיסמה, כי Excel לא יודע להזין סיסמאות.
+// המפתח ניתן להחלפה בכל רגע דרך משתנה הסביבה, וזה מבטל גישה מיידית.
+function requireExportToken(req, res, next) {
+  const token = process.env.EXPORT_TOKEN || '';
+  if (!token) return res.status(404).json({ error: 'משיכת נתונים אינה מופעלת' });
+  if ((req.query.token || '') !== token) {
+    return res.status(401).json({ error: 'מפתח גישה שגוי' });
+  }
+  next();
+}
+
+function toCsv(reports) {
+  const headers = ['תאריך ושעה', 'מיקום', 'פירוט מדויק', 'דחיפות', 'תיאור המפגע', 'מדווח', 'סטטוס', 'קישור לתמונה'];
+  const esc = (v) => {
+    const s = v == null ? '' : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const base = PUBLIC_URL.replace(/\/$/, '');
+
+  const rows = [...reports]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .map((r) => [
+      new Date(r.createdAt).toLocaleString('he-IL', { timeZone: process.env.TIMEZONE || 'Asia/Jerusalem' }),
+      r.location,
+      r.locationDetail || '',
+      r.urgency,
+      r.description,
+      r.reporterName || 'אנונימי',
+      r.status,
+      r.photoFilename && base ? `${base}/uploads/${r.photoFilename}` : '',
+    ].map(esc).join(','));
+
+  // BOM כדי ש-Excel יזהה עברית ורוסית כראוי ולא יציג ג'יבריש
+  return '﻿' + [headers.map(esc).join(','), ...rows].join('\r\n');
+}
+
+app.get('/api/export.csv', requireExportToken, (req, res) => {
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  res.send(toCsv(readReports()));
+});
+
+app.get('/api/export-file.xlsx', requireExportToken, async (req, res) => {
+  try {
+    const reports = readReports();
+    await buildReportsWorkbook(reports, UPLOADS_DIR, REPORTS_XLSX);
+    res.download(REPORTS_XLSX, 'דיווחי-בטיחות.xlsx');
+  } catch (e) {
+    console.error('שגיאה בייצוא Excel:', e);
+    res.status(500).json({ error: 'שגיאה בהפקת קובץ Excel' });
+  }
+});
+
 // ---- בדיקת סיסמת מנהל (עבור מסך הכניסה בממשק הניהול) ----
 app.post('/api/admin/login', (req, res) => {
   const { password } = req.body;
@@ -350,6 +491,44 @@ app.post('/api/admin/login', (req, res) => {
   }
   res.json({ success: true });
 });
+
+// ---- סיכום יומי אוטומטי בדואר ----
+// DIGEST_HOUR קובע את השעה (0-23). ריק = כבוי.
+// נבדק כל דקה, ונשלח פעם אחת ביום בלבד.
+const DIGEST_HOUR = process.env.DIGEST_HOUR === '' || process.env.DIGEST_HOUR === undefined
+  ? null
+  : Number(process.env.DIGEST_HOUR);
+
+let lastDigestDay = null;
+
+async function maybeSendDigest() {
+  if (DIGEST_HOUR === null || Number.isNaN(DIGEST_HOUR)) return;
+  if (!isMailConfigured()) return;
+
+  const tz = process.env.TIMEZONE || 'Asia/Jerusalem';
+  const now = new Date();
+  const hour = Number(now.toLocaleString('en-US', { timeZone: tz, hour: '2-digit', hour12: false }));
+  const day = now.toLocaleDateString('en-CA', { timeZone: tz });
+
+  if (hour !== DIGEST_HOUR || day === lastDigestDay) return;
+  lastDigestDay = day;
+
+  try {
+    const reports = readReports();
+    await buildReportsWorkbook(reports, UPLOADS_DIR, REPORTS_XLSX);
+    const result = await sendDigestEmail({ reports, excelPath: REPORTS_XLSX });
+    if (result.sent) {
+      console.log(`📧 סיכום יומי נשלח (${result.openCount} מפגעים פתוחים)`);
+    }
+  } catch (e) {
+    console.error('שגיאה בשליחת סיכום יומי:', e.message);
+  }
+}
+
+if (DIGEST_HOUR !== null && !Number.isNaN(DIGEST_HOUR)) {
+  setInterval(maybeSendDigest, 60 * 1000);
+  console.log(`🕐 סיכום יומי מתוזמן לשעה ${DIGEST_HOUR}:00`);
+}
 
 app.listen(PORT, () => {
   console.log(`🚧 שרת דיווחי בטיחות פועל על פורט ${PORT}`);

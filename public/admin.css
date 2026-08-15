@@ -265,3 +265,16 @@ body {
   max-height: 100%;
   border-radius: 8px;
 }
+
+/* ---- מסך המנהלים ---- */
+.login-sub {
+  color: #6b7480;
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
+.viewer-name {
+  color: rgba(255,255,255,0.85);
+  font-size: 13px;
+  margin-left: 10px;
+}

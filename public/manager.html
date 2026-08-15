@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light only" />
+<link rel="icon" href="data:," />
+<title>טיפול במפגעי בטיחות</title>
+<link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+
+  <!-- מסך כניסה -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <h1>טיפול במפגעי בטיחות</h1>
+      <p class="login-sub">הזן את קוד הגישה האישי שקיבלת</p>
+      <input type="password" id="codeInput" placeholder="קוד גישה" autocomplete="off" />
+      <button type="button" id="loginBtn" class="primary-btn">כניסה</button>
+      <div id="loginError" class="login-error" hidden></div>
+    </div>
+  </div>
+
+  <!-- לוח המפגעים -->
+  <div id="dashboard" hidden>
+    <header class="admin-top">
+      <h1>מפגעי בטיחות</h1>
+      <div class="admin-actions">
+        <span id="viewerName" class="viewer-name"></span>
+        <button type="button" id="logoutBtn" class="ghost-btn">יציאה</button>
+      </div>
+    </header>
+
+    <div class="admin-body">
+      <div id="summaryBar" class="summary-bar"></div>
+
+      <div class="filters">
+        <select id="filterStatus">
+          <option value="">כל הסטטוסים</option>
+          <option value="פתוח" selected>פתוח</option>
+          <option value="בטיפול">בטיפול</option>
+          <option value="טופל">טופל</option>
+        </select>
+        <select id="filterUrgency">
+          <option value="">כל רמות הדחיפות</option>
+          <option value="קריטי">קריטי</option>
+          <option value="גבוה">גבוה</option>
+          <option value="בינוני">בינוני</option>
+          <option value="נמוך">נמוך</option>
+        </select>
+        <button type="button" id="refreshBtn" class="ghost-btn">רענן</button>
+      </div>
+
+      <div id="reportsList" class="reports-list"></div>
+      <div id="emptyState" class="empty-state" hidden>אין מפגעים להצגה</div>
+    </div>
+  </div>
+
+  <div id="lightbox" class="lightbox" hidden>
+    <img id="lightboxImg" alt="מפגע - תמונה מוגדלת" />
+  </div>
+
+  <script src="manager.js"></script>
+</body>
+</html>

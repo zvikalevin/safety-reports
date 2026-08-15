@@ -6,6 +6,8 @@ const path = require('path');
 const QRCode = require('qrcode');
 
 const url = process.argv[2];
+const logoFile = path.join(__dirname, 'logo.png');
+const hasLogo = fs.existsSync(logoFile);
 // גודל הדף: A4 (ברירת מחדל) או A3 לתלייה במקומות פתוחים
 const size = (process.argv[3] || 'A4').toUpperCase() === 'A3' ? 'A3' : 'A4';
 
@@ -66,17 +68,26 @@ QRCode.toFile(qrPath, url, { width: 900, margin: 2 }, (err) => {
     width: 100%;
     background: #1a2733;
     color: white;
+    position: relative;
     padding: ${px(30)}px ${px(20)}px ${px(26)}px;
   }
-  .icon { font-size: ${px(54)}px; }
+  .icon { font-size: ${px(46)}px; }
+  /* לוגו החברה בפינה השמאלית העליונה */
+  .logo {
+    position: absolute;
+    top: ${px(18)}px;
+    left: ${px(22)}px;
+    max-width: ${px(150)}px;
+    max-height: ${px(62)}px;
+  }
   .head h1 {
-    font-size: ${px(30)}px;
-    margin: ${px(8)}px 0 ${px(2)}px;
+    font-size: ${px(40)}px;
+    margin: ${px(6)}px 0 ${px(2)}px;
     color: #ff6b1a;
   }
-  .head h1.ru { font-size: ${px(24)}px; color: #ffffff; margin-bottom: ${px(10)}px; }
+  .head h1.ru { font-size: ${px(31)}px; color: #ffffff; margin-bottom: ${px(10)}px; }
   .head h2 {
-    font-size: ${px(16)}px;
+    font-size: ${px(20)}px;
     margin: 0;
     font-weight: 400;
     color: rgba(255,255,255,0.85);
@@ -99,20 +110,20 @@ QRCode.toFile(qrPath, url, { width: 900, margin: 2 }, (err) => {
     margin: ${px(28)}px auto ${px(8)}px;
     display: inline-block;
   }
-  .qr-card img { width: ${px(360)}px; height: ${px(360)}px; display: block; }
+  .qr-card img { width: ${px(300)}px; height: ${px(300)}px; display: block; }
   .no-account {
-    font-size: ${px(14)}px;
-    color: #6b7480;
-    max-width: ${px(460)}px;
+    font-size: ${px(17)}px;
+    color: #4a5560;
+    max-width: ${px(560)}px;
     margin: 0 auto ${px(20)}px;
     line-height: 1.5;
   }
   .steps-wrap {
     display: flex;
     width: 100%;
-    max-width: ${px(680)}px;
-    gap: ${px(20)}px;
-    padding: 0 ${px(30)}px;
+    max-width: ${px(760)}px;
+    gap: ${px(24)}px;
+    padding: 0 ${px(26)}px;
     margin: ${px(10)}px auto 0;
   }
   .steps-col {
@@ -125,15 +136,15 @@ QRCode.toFile(qrPath, url, { width: 900, margin: 2 }, (err) => {
     direction: ltr;
   }
   .steps-col-title {
-    font-size: ${px(13)}px;
+    font-size: ${px(18)}px;
     font-weight: bold;
     color: #ff6b1a;
     margin-bottom: ${px(10)}px;
     text-transform: uppercase;
   }
   .steps-col div.step {
-    font-size: ${px(14)}px;
-    margin-bottom: ${px(12)}px;
+    font-size: ${px(19)}px;
+    margin-bottom: ${px(15)}px;
     display: flex;
     align-items: flex-start;
     gap: ${px(8)}px;
@@ -143,14 +154,14 @@ QRCode.toFile(qrPath, url, { width: 900, margin: 2 }, (err) => {
   .step-num {
     background: #1a2733;
     color: white;
-    width: ${px(22)}px;
-    height: ${px(22)}px;
+    width: ${px(28)}px;
+    height: ${px(28)}px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: ${px(12)}px;
+    font-size: ${px(15)}px;
     flex-shrink: 0;
   }
   .footer {
@@ -159,8 +170,8 @@ QRCode.toFile(qrPath, url, { width: 900, margin: 2 }, (err) => {
     left: 0;
     right: 0;
     padding: ${px(18)}px ${px(20)}px ${px(26)}px;
-    color: #6b7480;
-    font-size: ${px(12)}px;
+    color: #4a5560;
+    font-size: ${px(15)}px;
     line-height: 1.6;
   }
 </style>
@@ -168,6 +179,7 @@ QRCode.toFile(qrPath, url, { width: 900, margin: 2 }, (err) => {
 <body>
   <div class="poster">
     <div class="head">
+      ${hasLogo ? '<img class="logo" src="logo.png" alt="" />' : ''}
       <div class="icon">⚠️</div>
       <h1>ראית מפגע בטיחות?</h1>
       <h1 class="ru">Заметили нарушение безопасности?</h1>
